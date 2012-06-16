@@ -51,6 +51,7 @@
 #import "GPUImageSubtractBlendFilter.h"
 #import "GPUImageHardLightBlendFilter.h"
 #import "GPUImageSoftLightBlendFilter.h"
+#import "GPUImageNormalBlendFilter.h"
 #import "GPUImageCropFilter.h"
 #import "GPUImageGrayscaleFilter.h"
 #import "GPUImageTransformFilter.h"
