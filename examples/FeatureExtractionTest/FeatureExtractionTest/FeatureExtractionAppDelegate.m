@@ -18,6 +18,44 @@
     [self testNobleCornerDetectorAgainstPicture:blackAndWhiteBoxImage withName:@"WhiteBoxes"];
     [self testShiTomasiCornerDetectorAgainstPicture:blackAndWhiteBoxImage withName:@"WhiteBoxes"];
     
+    
+    // Testing erosion and dilation
+    GPUImageErosionFilter *erosionFilter = [[GPUImageErosionFilter alloc] initWithRadius:4];
+    [blackAndWhiteBoxImage removeAllTargets];
+    [blackAndWhiteBoxImage addTarget:erosionFilter];
+    [blackAndWhiteBoxImage processImage];
+    UIImage *erosionImage = [erosionFilter imageFromCurrentlyProcessedOutput];
+    [self saveImage:erosionImage fileName:@"Erosion4.png"];
+    
+    GPUImageDilationFilter *dilationFilter = [[GPUImageDilationFilter alloc] initWithRadius:4];
+    [blackAndWhiteBoxImage removeAllTargets];
+    [blackAndWhiteBoxImage addTarget:dilationFilter];
+    [blackAndWhiteBoxImage processImage];
+    UIImage *dilationImage = [dilationFilter imageFromCurrentlyProcessedOutput];
+    [self saveImage:dilationImage fileName:@"Dilation4.png"];
+
+    GPUImageOpeningFilter *openingFilter = [[GPUImageOpeningFilter alloc] initWithRadius:4];
+    [blackAndWhiteBoxImage removeAllTargets];
+    [blackAndWhiteBoxImage addTarget:openingFilter];
+    [blackAndWhiteBoxImage processImage];
+    UIImage *openingImage = [openingFilter imageFromCurrentlyProcessedOutput];
+    [self saveImage:openingImage fileName:@"Opening4.png"];
+
+    GPUImageClosingFilter *closingFilter = [[GPUImageClosingFilter alloc] initWithRadius:4];
+    [blackAndWhiteBoxImage removeAllTargets];
+    [blackAndWhiteBoxImage addTarget:closingFilter];
+    [blackAndWhiteBoxImage processImage];
+    UIImage *closingImage = [closingFilter imageFromCurrentlyProcessedOutput];
+    [self saveImage:closingImage fileName:@"Closing4.png"];
+    
+    UIImage *compressionInputImage = [UIImage imageNamed:@"8pixeltest.png"];    
+    GPUImagePicture *compressionImage = [[GPUImagePicture alloc] initWithImage:compressionInputImage];
+    GPUImageColorPackingFilter *packingFilter = [[GPUImageColorPackingFilter alloc] init];
+    [compressionImage addTarget:packingFilter];
+    [compressionImage processImage];
+    UIImage *compressedImage = [packingFilter imageFromCurrentlyProcessedOutput];
+    [self saveImage:compressedImage fileName:@"Compression.png"];
+
     return YES;
 }
 
@@ -36,6 +74,7 @@
     }];
     
     GPUImageAlphaBlendFilter *blendFilter = [[GPUImageAlphaBlendFilter alloc] init];
+    [blendFilter forceProcessingAtSize:[pictureInput outputImageSize]];
     [pictureInput addTarget:blendFilter];
     pictureInput.targetToIgnoreForUpdates = blendFilter;
     

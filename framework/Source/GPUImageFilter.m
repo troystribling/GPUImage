@@ -236,10 +236,16 @@ void dataProviderUnlockCallback (void *info, const void *data, size_t size)
 
     if ([GPUImageOpenGLESContext supportsFastTextureUpload] && preparedToCaptureImage)
     {
+        
+#if defined(__IPHONE_6_0)
+        CVReturn err = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, NULL, [[GPUImageOpenGLESContext sharedImageProcessingOpenGLESContext] context], NULL, &filterTextureCache);
+#else
         CVReturn err = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, NULL, (__bridge void *)[[GPUImageOpenGLESContext sharedImageProcessingOpenGLESContext] context], NULL, &filterTextureCache);
-        if (err) 
+#endif
+
+        if (err)
         {
-            NSAssert(NO, @"Error at CVOpenGLESTextureCacheCreate %d");
+            NSAssert(NO, @"Error at CVOpenGLESTextureCacheCreate %d", err);
         }
         
         // Code originally sourced from http://allmybrain.com/2011/12/08/rendering-to-a-texture-with-ios-5-texture-cache-api/
@@ -254,7 +260,7 @@ void dataProviderUnlockCallback (void *info, const void *data, size_t size)
         if (err) 
         {
             NSLog(@"FBO size: %f, %f", currentFBOSize.width, currentFBOSize.height);
-            NSAssert(NO, @"Error at CVPixelBufferCreate %d");
+            NSAssert(NO, @"Error at CVPixelBufferCreate %d", err);
         }
         
         err = CVOpenGLESTextureCacheCreateTextureFromImage (kCFAllocatorDefault,
@@ -270,7 +276,7 @@ void dataProviderUnlockCallback (void *info, const void *data, size_t size)
                                                       &renderTexture);
         if (err) 
         {
-            NSAssert(NO, @"Error at CVOpenGLESTextureCacheCreateTextureFromImage %d");
+            NSAssert(NO, @"Error at CVOpenGLESTextureCacheCreateTextureFromImage %d", err);
         }
 
         CFRelease(attrs);
@@ -391,6 +397,13 @@ void dataProviderUnlockCallback (void *info, const void *data, size_t size)
         1.0f, 0.0f,
         1.0f, 1.0f,
     };
+    
+    static const GLfloat rotate180TextureCoordinates[] = {
+        1.0f, 1.0f,
+        0.0f, 1.0f,
+        1.0f, 0.0f,
+        0.0f, 0.0f,
+    };
 
     switch(rotationMode)
     {
@@ -400,6 +413,7 @@ void dataProviderUnlockCallback (void *info, const void *data, size_t size)
         case kGPUImageFlipVertical: return verticalFlipTextureCoordinates;
         case kGPUImageFlipHorizonal: return horizontalFlipTextureCoordinates;
         case kGPUImageRotateRightFlipVertical: return rotateRightVerticalFlipTextureCoordinates;
+        case kGPUImageRotate180: return rotate180TextureCoordinates;
     }
 }
 
@@ -636,6 +650,11 @@ void dataProviderUnlockCallback (void *info, const void *data, size_t size)
         {
             rotatedPoint.x = pointToRotate.y;
             rotatedPoint.y = pointToRotate.x;
+        }; break;
+        case kGPUImageRotate180:
+        {
+            rotatedPoint.x = 1.0 - pointToRotate.x;
+            rotatedPoint.y = 1.0 - pointToRotate.y;
         }; break;
     }
     

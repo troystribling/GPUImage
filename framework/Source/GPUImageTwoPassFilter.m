@@ -113,10 +113,15 @@
 
     if ([GPUImageOpenGLESContext supportsFastTextureUpload] && preparedToCaptureImage)
     {
+#if defined(__IPHONE_6_0)
+        CVReturn err = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, NULL, [[GPUImageOpenGLESContext sharedImageProcessingOpenGLESContext] context], NULL, &filterTextureCache);
+#else
         CVReturn err = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, NULL, (__bridge void *)[[GPUImageOpenGLESContext sharedImageProcessingOpenGLESContext] context], NULL, &filterTextureCache);
+#endif
+
         if (err) 
         {
-            NSAssert(NO, @"Error at CVOpenGLESTextureCacheCreate %d");
+            NSAssert(NO, @"Error at CVOpenGLESTextureCacheCreate %d", err);
         }
         
         // Code originally sourced from http://allmybrain.com/2011/12/08/rendering-to-a-texture-with-ios-5-texture-cache-api/
@@ -131,7 +136,7 @@
         if (err) 
         {
             NSLog(@"FBO size: %f, %f", currentFBOSize.width, currentFBOSize.height);
-            NSAssert(NO, @"Error at CVPixelBufferCreate %d");
+            NSAssert(NO, @"Error at CVPixelBufferCreate %d", err);
         }
         
         err = CVOpenGLESTextureCacheCreateTextureFromImage (kCFAllocatorDefault,
@@ -147,7 +152,7 @@
                                                             &renderTexture);
         if (err) 
         {
-            NSAssert(NO, @"Error at CVOpenGLESTextureCacheCreateTextureFromImage %d");
+            NSAssert(NO, @"Error at CVOpenGLESTextureCacheCreateTextureFromImage %d", err);
         }
         
         CFRelease(attrs);

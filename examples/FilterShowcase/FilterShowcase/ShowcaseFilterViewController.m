@@ -116,6 +116,18 @@
             
             filter = [[GPUImageGrayscaleFilter alloc] init];
         }; break;
+        case GPUIMAGE_MONOCHROME:
+        {
+            self.title = @"Monochrome";
+            self.filterSettingsSlider.hidden = NO;
+            
+            [self.filterSettingsSlider setValue:1.0];
+            [self.filterSettingsSlider setMinimumValue:0.0];
+            [self.filterSettingsSlider setMaximumValue:1.0];
+            
+            filter = [[GPUImageMonochromeFilter alloc] init];
+            [(GPUImageMonochromeFilter *)filter setColor:(GPUVector4){0.0f, 0.0f, 1.0f, 1.f}];
+        }; break;
         case GPUIMAGE_SATURATION:
         {
             self.title = @"Saturation";
@@ -386,7 +398,13 @@
 
             filter = [[GPUImageCannyEdgeDetectionFilter alloc] init];
         }; break;
-
+        case GPUIMAGE_BUFFER:
+        {
+            self.title = @"Image Buffer";
+            self.filterSettingsSlider.hidden = YES;
+            
+            filter = [[GPUImageBuffer alloc] init];
+        }; break;
         case GPUIMAGE_SKETCH:
         {
             self.title = @"Sketch";
@@ -505,6 +523,17 @@
             
             filter = [[GPUImageBulgeDistortionFilter alloc] init];
         }; break;
+        case GPUIMAGE_SPHEREREFRACTION:
+        {
+            self.title = @"Sphere Refraction";
+            self.filterSettingsSlider.hidden = NO;
+            
+            [self.filterSettingsSlider setMinimumValue:0.0];
+            [self.filterSettingsSlider setMaximumValue:1.0];
+            [self.filterSettingsSlider setValue:0.5];
+            
+            filter = [[GPUImageSphereRefractionFilter alloc] init];
+        }; break;
         case GPUIMAGE_PINCH:
         {
             self.title = @"Pinch";
@@ -523,6 +552,35 @@
             
             filter = [[GPUImageStretchDistortionFilter alloc] init];
         }; break;
+        case GPUIMAGE_DILATION:
+        {
+            self.title = @"Dilation";
+            self.filterSettingsSlider.hidden = YES;
+            
+            filter = [[GPUImageRGBDilationFilter alloc] initWithRadius:4];
+		}; break;
+        case GPUIMAGE_EROSION:
+        {
+            self.title = @"Erosion";
+            self.filterSettingsSlider.hidden = YES;
+            
+            filter = [[GPUImageRGBErosionFilter alloc] initWithRadius:4];
+		}; break;
+        case GPUIMAGE_OPENING:
+        {
+            self.title = @"Opening";
+            self.filterSettingsSlider.hidden = YES;
+            
+            filter = [[GPUImageRGBOpeningFilter alloc] initWithRadius:4];
+		}; break;
+        case GPUIMAGE_CLOSING:
+        {
+            self.title = @"Closing";
+            self.filterSettingsSlider.hidden = YES;
+            
+            filter = [[GPUImageRGBClosingFilter alloc] initWithRadius:4];
+		}; break;
+
         case GPUIMAGE_PERLINNOISE:
         {
             self.title = @"Perlin Noise";
@@ -694,6 +752,18 @@
             
             filter = [[GPUImageSoftLightBlendFilter alloc] init];
         }; break;
+        case GPUIMAGE_OPACITY:
+        {
+            self.title = @"Opacity Adjustment";
+            self.filterSettingsSlider.hidden = NO;
+            needsSecondImage = YES;	
+            
+            [self.filterSettingsSlider setValue:1.0];
+            [self.filterSettingsSlider setMinimumValue:0.0];
+            [self.filterSettingsSlider setMaximumValue:1.0];
+            
+            filter = [[GPUImageOpacityFilter alloc] init];
+        }; break;
         case GPUIMAGE_CUSTOM:
         {
             self.title = @"Custom";
@@ -759,6 +829,13 @@
             
             filter = [[GPUImageMedianFilter alloc] init];
 		}; break;
+        case GPUIMAGE_UIELEMENT:
+        {
+            self.title = @"UI Element";
+            self.filterSettingsSlider.hidden = YES;
+            
+            filter = [[GPUImageSepiaFilter alloc] init];
+		}; break;
         case GPUIMAGE_GAUSSIAN_SELECTIVE:
         {
             self.title = @"Selective Blur";
@@ -818,7 +895,8 @@
     else 
     {
     
-        if (filterType != GPUIMAGE_VORONI) {
+        if (filterType != GPUIMAGE_VORONI) 
+        {
             [videoCamera addTarget:filter];
         }
         
@@ -863,6 +941,7 @@
             
             GPUImageAlphaBlendFilter *blendFilter = [[GPUImageAlphaBlendFilter alloc] init];
             blendFilter.mix = 0.75;            
+            [blendFilter forceProcessingAtSize:CGSizeMake(256.0, 330.0)];
             
             [videoCamera addTarget:blendFilter];
             [histogramGraph addTarget:blendFilter];
@@ -881,6 +960,7 @@
             }];
 
             GPUImageAlphaBlendFilter *blendFilter = [[GPUImageAlphaBlendFilter alloc] init];
+            [blendFilter forceProcessingAtSize:CGSizeMake(480.0, 640.0)];
             GPUImageGammaFilter *gammaFilter = [[GPUImageGammaFilter alloc] init];
             [videoCamera addTarget:gammaFilter];
             [gammaFilter addTarget:blendFilter];
@@ -890,7 +970,69 @@
 
             [blendFilter addTarget:filterView];
         }
-        
+        else if (filterType == GPUIMAGE_UIELEMENT)
+        {
+            GPUImageAlphaBlendFilter *blendFilter = [[GPUImageAlphaBlendFilter alloc] init];
+            blendFilter.mix = 1.0;
+            
+            NSDate *startTime = [NSDate date];
+            
+            UILabel *timeLabel = [[UILabel alloc] initWithFrame:CGRectMake(0.0, 0.0, 240.0f, 320.0f)];
+            timeLabel.font = [UIFont systemFontOfSize:17.0f];
+            timeLabel.text = @"Time: 0.0 s";
+            timeLabel.textAlignment = UITextAlignmentCenter;
+            timeLabel.backgroundColor = [UIColor clearColor];
+            timeLabel.textColor = [UIColor whiteColor];
+
+            uiElementInput = [[GPUImageUIElement alloc] initWithView:timeLabel];
+            
+            [filter addTarget:blendFilter];
+            [uiElementInput addTarget:blendFilter];
+            
+            [blendFilter addTarget:filterView];
+
+            uiElementInput.targetToIgnoreForUpdates = blendFilter;
+            
+            __unsafe_unretained GPUImageUIElement *weakUIElementInput = uiElementInput;
+            
+            [filter setFrameProcessingCompletionBlock:^(GPUImageOutput * filter, CMTime frameTime){
+                timeLabel.text = [NSString stringWithFormat:@"Time: %f s", -[startTime timeIntervalSinceNow]];
+                [weakUIElementInput update];
+            }];
+        }
+        else if (filterType == GPUIMAGE_BUFFER)
+        {
+            
+            GPUImageDifferenceBlendFilter *blendFilter = [[GPUImageDifferenceBlendFilter alloc] init];
+            [blendFilter forceProcessingAtSize:CGSizeMake(480.0, 640.0)];
+
+//            [filter addTarget:filterView];            
+            [videoCamera removeTarget:filter];
+
+            GPUImageGammaFilter *gammaFilter = [[GPUImageGammaFilter alloc] init];
+            [videoCamera addTarget:gammaFilter];
+            [gammaFilter addTarget:blendFilter];
+            gammaFilter.targetToIgnoreForUpdates = blendFilter;
+            [videoCamera addTarget:filter];
+
+            [filter addTarget:blendFilter];
+            
+            [blendFilter addTarget:filterView];
+        }
+        else if (filterType == GPUIMAGE_OPACITY)
+        {
+            [sourcePicture removeTarget:filter];
+            [videoCamera removeTarget:filter];
+            [videoCamera addTarget:filter];
+            
+            GPUImageAlphaBlendFilter *blendFilter = [[GPUImageAlphaBlendFilter alloc] init];
+            blendFilter.mix = 1.0;
+            [blendFilter forceProcessingAtSize:CGSizeMake(480.0, 640.0)];
+            [sourcePicture addTarget:blendFilter];
+            [filter addTarget:blendFilter];
+            
+            [blendFilter addTarget:filterView];
+        }
         else 
         {
             [filter addTarget:filterView];
@@ -915,6 +1057,7 @@
         case GPUIMAGE_CONTRAST: [(GPUImageContrastFilter *)filter setContrast:[(UISlider *)sender value]]; break;
         case GPUIMAGE_BRIGHTNESS: [(GPUImageBrightnessFilter *)filter setBrightness:[(UISlider *)sender value]]; break;
         case GPUIMAGE_EXPOSURE: [(GPUImageExposureFilter *)filter setExposure:[(UISlider *)sender value]]; break;
+        case GPUIMAGE_MONOCHROME: [(GPUImageMonochromeFilter *)filter setIntensity:[(UISlider *)sender value]]; break;
         case GPUIMAGE_RGB: [(GPUImageRGBFilter *)filter setGreen:[(UISlider *)sender value]]; break;
         case GPUIMAGE_SHARPEN: [(GPUImageSharpenFilter *)filter setSharpness:[(UISlider *)sender value]]; break;
         case GPUIMAGE_HISTOGRAM: [(GPUImageHistogramFilter *)filter setDownsamplingFactor:round([(UISlider *)sender value])]; break;
@@ -940,6 +1083,7 @@
         case GPUIMAGE_SMOOTHTOON: [(GPUImageSmoothToonFilter *)filter setBlurSize:[(UISlider*)sender value]]; break;
 //        case GPUIMAGE_BULGE: [(GPUImageBulgeDistortionFilter *)filter setRadius:[(UISlider *)sender value]]; break;
         case GPUIMAGE_BULGE: [(GPUImageBulgeDistortionFilter *)filter setScale:[(UISlider *)sender value]]; break;
+        case GPUIMAGE_SPHEREREFRACTION: [(GPUImageSphereRefractionFilter *)filter setRadius:[(UISlider *)sender value]]; break;
         case GPUIMAGE_TONECURVE: [(GPUImageToneCurveFilter *)filter setBlueControlPoints:[NSArray arrayWithObjects:[NSValue valueWithCGPoint:CGPointMake(0.0, 0.0)], [NSValue valueWithCGPoint:CGPointMake(0.5, [(UISlider *)sender value])], [NSValue valueWithCGPoint:CGPointMake(1.0, 0.75)], nil]]; break;
         case GPUIMAGE_PINCH: [(GPUImagePinchDistortionFilter *)filter setScale:[(UISlider *)sender value]]; break;
         case GPUIMAGE_PERLINNOISE:  [(GPUImagePerlinNoiseFilter *)filter setScale:[(UISlider *)sender value]]; break;
@@ -949,6 +1093,7 @@
         case GPUIMAGE_BILATERAL: [(GPUImageBilateralFilter *)filter setBlurSize:[(UISlider*)sender value]]; break;
         case GPUIMAGE_FASTBLUR: [(GPUImageFastBlurFilter *)filter setBlurPasses:round([(UISlider*)sender value])]; break;
 //        case GPUIMAGE_FASTBLUR: [(GPUImageFastBlurFilter *)filter setBlurSize:[(UISlider*)sender value]]; break;
+        case GPUIMAGE_OPACITY:  [(GPUImageOpacityFilter *)filter setOpacity:[(UISlider *)sender value]]; break;
         case GPUIMAGE_GAUSSIAN_SELECTIVE: [(GPUImageGaussianSelectiveBlurFilter *)filter setExcludeCircleRadius:[(UISlider*)sender value]]; break;
         case GPUIMAGE_FILTERGROUP: [(GPUImagePixellateFilter *)[(GPUImageFilterGroup *)filter filterAtIndex:1] setFractionalWidthOfAPixel:[(UISlider *)sender value]]; break;
         case GPUIMAGE_CROP: [(GPUImageCropFilter *)filter setCropRegion:CGRectMake(0.0, 0.0, 1.0, [(UISlider*)sender value])]; break;

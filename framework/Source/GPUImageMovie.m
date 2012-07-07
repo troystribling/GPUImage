@@ -29,10 +29,14 @@
     if ([GPUImageOpenGLESContext supportsFastTextureUpload])
     {
         [GPUImageOpenGLESContext useImageProcessingContext];
+#if defined(__IPHONE_6_0)
+        CVReturn err = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, NULL, [[GPUImageOpenGLESContext sharedImageProcessingOpenGLESContext] context], NULL, &coreVideoTextureCache);
+#else
         CVReturn err = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, NULL, (__bridge void *)[[GPUImageOpenGLESContext sharedImageProcessingOpenGLESContext] context], NULL, &coreVideoTextureCache);
+#endif
         if (err) 
         {
-            NSAssert(NO, @"Error at CVOpenGLESTextureCacheCreate %d");
+            NSAssert(NO, @"Error at CVOpenGLESTextureCacheCreate %d", err);
         }
         
         // Need to remove the initially created texture
@@ -42,6 +46,14 @@
     self.url = url;
     
     return self;
+}
+
+- (void)dealloc
+{
+    if ([GPUImageOpenGLESContext supportsFastTextureUpload])
+    {
+        CFRelease(coreVideoTextureCache);
+    }
 }
 
 #pragma mark -
@@ -57,6 +69,8 @@
 {
     NSDictionary *inputOptions = [NSDictionary dictionaryWithObject:[NSNumber numberWithBool:YES] forKey:AVURLAssetPreferPreciseDurationAndTimingKey];
     AVURLAsset *inputAsset = [[AVURLAsset alloc] initWithURL:self.url options:inputOptions];
+    
+    __unsafe_unretained GPUImageMovie *weakSelf = self;
     
     [inputAsset loadValuesAsynchronouslyForKeys:[NSArray arrayWithObject:@"tracks"] completionHandler: ^{
         NSError *error = nil;
@@ -74,7 +88,7 @@
         [reader addOutput:readerVideoTrackOutput];
         
         NSArray *audioTracks = [inputAsset tracksWithMediaType:AVMediaTypeAudio];
-        BOOL shouldRecordAudioTrack = (([audioTracks count] > 0) && (self.audioEncodingTarget != nil) );
+        BOOL shouldRecordAudioTrack = (([audioTracks count] > 0) && (weakSelf.audioEncodingTarget != nil) );
         AVAssetReaderTrackOutput *readerAudioTrackOutput = nil;
 
         if (shouldRecordAudioTrack)
@@ -89,14 +103,12 @@
 
         if ([reader startReading] == NO) 
         {
-            NSLog(@"Error reading from file at URL: %@", self.url);
+            NSLog(@"Error reading from file at URL: %@", weakSelf.url);
             return;
         }
         
         if (synchronizedMovieWriter != nil)
         {
-            __unsafe_unretained GPUImageMovie *weakSelf = self;
-            
             [synchronizedMovieWriter setVideoInputReadyCallback:^{
                 [weakSelf readNextVideoFrameFromOutput:readerVideoTrackOutput];
             }];
@@ -111,17 +123,17 @@
         {
             while (reader.status == AVAssetReaderStatusReading) 
             {
-                [self readNextVideoFrameFromOutput:readerVideoTrackOutput];
+                [weakSelf readNextVideoFrameFromOutput:readerVideoTrackOutput];
                 
                 if ( (shouldRecordAudioTrack) && (!audioEncodingIsFinished) )
                 {
-                    [self readNextAudioSampleFromOutput:readerAudioTrackOutput];
+                    [weakSelf readNextAudioSampleFromOutput:readerAudioTrackOutput];
                 }
                 
             }            
 
             if (reader.status == AVAssetWriterStatusCompleted) {
-                [self endProcessing];
+                [weakSelf endProcessing];
             }
         }
     }];
@@ -134,8 +146,9 @@
         CMSampleBufferRef sampleBufferRef = [readerVideoTrackOutput copyNextSampleBuffer];
         if (sampleBufferRef) 
         {
+            __unsafe_unretained GPUImageMovie *weakSelf = self;
             runOnMainQueueWithoutDeadlocking(^{
-                [self processMovieFrame:sampleBufferRef]; 
+                [weakSelf processMovieFrame:sampleBufferRef];
             });
             
             CMSampleBufferInvalidate(sampleBufferRef);

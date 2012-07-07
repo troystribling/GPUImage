@@ -273,10 +273,15 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString = SHADER_STRING
     
     if ([GPUImageOpenGLESContext supportsFastTextureUpload])
     {
+#if defined(__IPHONE_6_0)
+        CVReturn err = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, NULL, [[GPUImageOpenGLESContext sharedImageProcessingOpenGLESContext] context], NULL, &coreVideoTextureCache);
+#else
         CVReturn err = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, NULL, (__bridge void *)[[GPUImageOpenGLESContext sharedImageProcessingOpenGLESContext] context], NULL, &coreVideoTextureCache);
+#endif
+
         if (err) 
         {
-            NSAssert(NO, @"Error at CVOpenGLESTextureCacheCreate %d");
+            NSAssert(NO, @"Error at CVOpenGLESTextureCacheCreate %d", err);
         }
 
         // Code originally sourced from http://allmybrain.com/2011/12/08/rendering-to-a-texture-with-ios-5-texture-cache-api/
@@ -396,7 +401,7 @@ NSString *const kGPUImageColorSwizzlingFragmentShaderString = SHADER_STRING
     
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     
-    glFlush();
+    glFinish();
 }
 
 #pragma mark -
