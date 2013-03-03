@@ -53,15 +53,25 @@ NSString *const kGPUImageNearbyTexelSamplingVertexShaderString = SHADER_STRING
 #pragma mark -
 #pragma mark Initialization and teardown
 
-- (id)initWithFragmentShaderFromString:(NSString *)fragmentShaderString;
+- (id)initWithVertexShaderFromString:(NSString *)vertexShaderString fragmentShaderFromString:(NSString *)fragmentShaderString;
 {
-    if (!(self = [super initWithVertexShaderFromString:kGPUImageNearbyTexelSamplingVertexShaderString fragmentShaderFromString:fragmentShaderString]))
+    if (!(self = [super initWithVertexShaderFromString:vertexShaderString fragmentShaderFromString:fragmentShaderString]))
     {
         return nil;
     }
     
     texelWidthUniform = [filterProgram uniformIndex:@"texelWidth"];
     texelHeightUniform = [filterProgram uniformIndex:@"texelHeight"];
+    
+    return self;
+}
+
+- (id)initWithFragmentShaderFromString:(NSString *)fragmentShaderString;
+{
+    if (!(self = [self initWithVertexShaderFromString:kGPUImageNearbyTexelSamplingVertexShaderString fragmentShaderFromString:fragmentShaderString]))
+    {
+        return nil;
+    }
     
     return self;
 }
@@ -73,19 +83,19 @@ NSString *const kGPUImageNearbyTexelSamplingVertexShaderString = SHADER_STRING
         _texelWidth = 1.0 / filterFrameSize.width;
         _texelHeight = 1.0 / filterFrameSize.height;
         
-        [GPUImageOpenGLESContext useImageProcessingContext];
-        [filterProgram use];
-        if (GPUImageRotationSwapsWidthAndHeight(inputRotation))
-        {
-            glUniform1f(texelWidthUniform, _texelHeight);
-            glUniform1f(texelHeightUniform, _texelWidth);
-        }
-        else
-        {
-            glUniform1f(texelWidthUniform, _texelWidth);
-            glUniform1f(texelHeightUniform, _texelHeight);
-        }
-
+        runSynchronouslyOnVideoProcessingQueue(^{
+            [GPUImageOpenGLESContext setActiveShaderProgram:filterProgram];
+            if (GPUImageRotationSwapsWidthAndHeight(inputRotation))
+            {
+                glUniform1f(texelWidthUniform, _texelHeight);
+                glUniform1f(texelHeightUniform, _texelWidth);
+            }
+            else
+            {
+                glUniform1f(texelWidthUniform, _texelWidth);
+                glUniform1f(texelHeightUniform, _texelHeight);
+            }
+        });
     }
 }
 
@@ -97,20 +107,15 @@ NSString *const kGPUImageNearbyTexelSamplingVertexShaderString = SHADER_STRING
     hasOverriddenImageSizeFactor = YES;
     _texelWidth = newValue;
     
-    [GPUImageOpenGLESContext useImageProcessingContext];
-    [filterProgram use];
-    glUniform1f(texelWidthUniform, _texelWidth);
+    [self setFloat:_texelWidth forUniform:texelWidthUniform program:filterProgram];
 }
 
 - (void)setTexelHeight:(CGFloat)newValue;
 {
     hasOverriddenImageSizeFactor = YES;
     _texelHeight = newValue;
-    
-    [GPUImageOpenGLESContext useImageProcessingContext];
-    [filterProgram use];
-    glUniform1f(texelHeightUniform, _texelHeight);
-}
 
+    [self setFloat:_texelHeight forUniform:texelHeightUniform program:filterProgram];
+}
 
 @end

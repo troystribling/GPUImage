@@ -45,5 +45,4 @@ NSString *const kGPUImageNormalBlendFragmentShaderString = SHADER_STRING
     return self;
 }
 
-
 @end

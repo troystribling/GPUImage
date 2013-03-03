@@ -17,10 +17,14 @@ typedef struct GPUByteColorVector GPUByteColorVector;
     CVPixelBufferRef renderTarget;
     GPUImageRotationMode inputRotation;
     BOOL outputBGRA;
+    CVOpenGLESTextureRef renderTexture;
+    
+    __unsafe_unretained id<GPUImageTextureDelegate> textureDelegate;
 }
 
 @property(readonly) GLubyte *rawBytesForImage;
 @property(nonatomic, copy) void(^newFrameAvailableBlock)(void);
+@property(nonatomic) BOOL enabled;
 
 // Initialization and teardown
 - (id)initWithImageSize:(CGSize)newImageSize resultsInBGRAFormat:(BOOL)resultsInBGRAFormat;

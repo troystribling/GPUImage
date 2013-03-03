@@ -1,5 +1,7 @@
 # GPUImage framework #
 
+<div style="float: right"><img src="http://sunsetlakesoftware.com/sites/default/files/GPUImageLogo.png" /></div>
+
 Brad Larson
 
 http://www.sunsetlakesoftware.com
@@ -73,10 +75,30 @@ Documentation is generated from header comments using appledoc. To build the doc
   - *colorMatrix*: A 4x4 matrix used to transform each color in an image
   - *intensity*: The degree to which the new transformed color replaces the original color for each pixel
 
+- **GPUImageRGBFilter**: Adjusts the individual RGB channels of an image
+  - *red*: Normalized values by which each color channel is multiplied. The range is from 0.0 up, with 1.0 as the default.
+  - *green*: 
+  - *blue*:
+
+- **GPUImageHueFilter**: Adjusts the hue of an image
+  - *hue*: The hue angle, in degrees. 90 degrees by default
+
 - **GPUImageToneCurveFilter**: Adjusts the colors of an image based on spline curves for each color channel.
   - *redControlPoints*:
   - *greenControlPoints*:
   - *blueControlPoints*: The tone curve takes in a series of control points that define the spline curve for each color component. These are stored as NSValue-wrapped CGPoints in an NSArray, with normalized X and Y coordinates from 0 - 1. The defaults are (0,0), (0.5,0.5), (1,1).
+
+- **GPUImageHighlightShadowFilter**: Adjusts the shadows and highlights of an image
+  - *shadows*: Increase to lighten shadows, from 0.0 to 1.0, with 0.0 as the default.
+  - *highlights*: Decrease to darken highlights, from 0.0 to 1.0, with 1.0 as the default.
+
+- **GPUImageLookupFilter**: Uses an RGB color lookup image to remap the colors in an image. First, use your favourite photo editing application to apply a filter to lookup.png from GPUImage/framework/Resources. For this to work properly each pixel color must not depend on other pixels (e.g. blur will not work). If you need a more complex filter you can create as many lookup tables as required. Once ready, use your new lookup.png file as a second input for GPUImageLookupFilter.
+
+- **GPUImageAmatorkaFilter**: A photo filter based on a Photoshop action by Amatorka: http://amatorka.deviantart.com/art/Amatorka-Action-2-121069631 . If you want to use this effect you have to add lookup_amatorka.png from the GPUImage Resources folder to your application bundle.
+
+- **GPUImageMissEtikateFilter**: A photo filter based on a Photoshop action by Miss Etikate: http://miss-etikate.deviantart.com/art/Photoshop-Action-15-120151961 . If you want to use this effect you have to add lookup_miss_etikate.png from the GPUImage Resources folder to your application bundle.
+
+- **GPUImageSoftEleganceFilter**: Another lookup-based color remapping filter. If you want to use this effect you have to add lookup_soft_elegance_1.png and lookup_soft_elegance_2.png from the GPUImage Resources folder to your application bundle.
 
 - **GPUImageColorInvertFilter**: Inverts the colors of an image
 
@@ -86,21 +108,39 @@ Documentation is generated from header comments using appledoc. To build the doc
   - *intensity*: The degree to which the specific color replaces the normal image color (0.0 - 1.0, with 1.0 as the default)
   - *color*: The color to use as the basis for the effect, with (0.6, 0.45, 0.3, 1.0) as the default.
 
+- **GPUImageFalseColorFilter**: Uses the luminance of the image to mix between two user-specified colors
+  - *firstColor*: The first and second colors specify what colors replace the dark and light areas of the image, respectively. The defaults are (0.0, 0.0, 0.5) amd (1.0, 0.0, 0.0).
+  - *secondColor*: 
+
 - **GPUImageSepiaFilter**: Simple sepia tone filter
   - *intensity*: The degree to which the sepia tone replaces the normal image color (0.0 - 1.0, with 1.0 as the default)
 
 - **GPUImageOpacityFilter**: Adjusts the alpha channel of the incoming image
   - *opacity*: The value to multiply the incoming alpha channel for each pixel by (0.0 - 1.0, with 1.0 as the default)
 
+- **GPUImageSolidColorGenerator**: This outputs a generated image with a solid color. You need to define the image size using -forceProcessingAtSize:
+ - *color*: The color, in a four component format, that is used to fill the image.
+
 - **GPUImageLuminanceThresholdFilter**: Pixels with a luminance above the threshold will appear white, and those below will be black
   - *threshold*: The luminance threshold, from 0.0 to 1.0, with a default of 0.5
 
 - **GPUImageAdaptiveThresholdFilter**: Determines the local luminance around a pixel, then turns the pixel black if it is below that local luminance and white if above. This can be useful for picking out text under varying lighting conditions.
 
+- **GPUImageAverageLuminanceThresholdFilter**: This applies a thresholding operation where the threshold is continually adjusted based on the average luminance of the scene.
+  - *thresholdMultiplier*: This is a factor that the average luminance will be multiplied by in order to arrive at the final threshold to use. By default, this is 1.0.
+
 - **GPUImageHistogramFilter**: This analyzes the incoming image and creates an output histogram with the frequency at which each color value occurs. The output of this filter is a 3-pixel-high, 256-pixel-wide image with the center (vertical) pixels containing pixels that correspond to the frequency at which various color values occurred. Each color value occupies one of the 256 width positions, from 0 on the left to 255 on the right. This histogram can be generated for individual color channels (kGPUImageHistogramRed, kGPUImageHistogramGreen, kGPUImageHistogramBlue), the luminance of the image (kGPUImageHistogramLuminance), or for all three color channels at once (kGPUImageHistogramRGB).
   - *downsamplingFactor*: Rather than sampling every pixel, this dictates what fraction of the image is sampled. By default, this is 16 with a minimum of 1. This is needed to keep from saturating the histogram, which can only record 256 pixels for each color value before it becomes overloaded.
 
 - **GPUImageHistogramGenerator**: This is a special filter, in that it's primarily intended to work with the GPUImageHistogramFilter. It generates an output representation of the color histograms generated by GPUImageHistogramFilter, but it could be repurposed to display other kinds of values. It takes in an image and looks at the center (vertical) pixels. It then plots the numerical values of the RGB components in separate colored graphs in an output texture. You may need to force a size for this filter in order to make its output visible.
+
+- **GPUImageAverageColor**: This processes an input image and determines the average color of the scene, by averaging the RGBA components for each pixel in the image. A reduction process is used to progressively downsample the source image on the GPU, followed by a short averaging calculation on the CPU. The output from this filter is meaningless, but you need to set the colorAverageProcessingFinishedBlock property to a block that takes in four color components and a frame time and does something with them.
+
+- **GPUImageLuminosity**: Like the GPUImageAverageColor, this reduces an image to its average luminosity. You need to set the luminosityProcessingFinishedBlock to handle the output of this filter, which just returns a luminosity value and a frame time.
+
+- **GPUImageChromaKeyFilter**: For a given color in the image, sets the alpha channel to 0. This is similar to the GPUImageChromaKeyBlendFilter, only instead of blending in a second image for a matching color this doesn't take in a second image and just turns a given color transparent.
+- *thresholdSensitivity*: How close a color match needs to exist to the target color to be replaced (default of 0.4)
+- *smoothing*: How smoothly to blend for the color match (default of 0.1)
 
 ### Image processing ###
 
@@ -111,6 +151,8 @@ Documentation is generated from header comments using appledoc. To build the doc
 
 - **GPUImageCropFilter**: This crops an image to a specific region, then passes only that region on to the next stage in the filter
   - *cropRegion*: A rectangular area to crop out of the image, normalized to coordinates from 0.0 - 1.0. The (0.0, 0.0) position is in the upper left of the image.
+
+- **GPUImageLanczosResamplingFilter**: This lets you up- or downsample an image using Lanczos resampling, which results in noticeably better quality than the standard linear or trilinear interpolation. Simply use -forceProcessingAtSize: to set the target output resolution for the filter, and the image will be resampled for that new size.
 
 - **GPUImageSharpenFilter**: Sharpens the image
   - *sharpness*: The sharpness adjustment to apply (-4.0 - 4.0, with 0.0 as the default)
@@ -130,6 +172,7 @@ Documentation is generated from header comments using appledoc. To build the doc
   - *excludeCircleRadius*: The radius of the circular area being excluded from the blur
   - *excludeCirclePoint*: The center of the circular area being excluded from the blur
   - *excludeBlurSize*: The size of the area between the blurred portion and the clear circle 
+  - *aspectRatio*: The aspect ratio of the image, used to adjust the circularity of the in-focus region. By default, this matches the image aspect ratio, but you can override this value.
 
 - **GPUImageTiltShiftFilter**: A simulated tilt shift lens effect
   - *blurSize*: A multiplier for the size of the out-of-focus blur, ranging from 0.0 on up, with a default of 2.0
@@ -191,6 +234,16 @@ Documentation is generated from header comments using appledoc. To build the doc
 
 - **GPUImageRGBClosingFilter**: This is the same as the GPUImageClosingFilter, except that this acts on all color channels, not just the red channel.
 
+- **GPUImageLowPassFilter**: This applies a low pass filter to incoming video frames. This basically accumulates a weighted rolling average of previous frames with the current ones as they come in. This can be used to denoise video, add motion blur, or be used to create a high pass filter.
+  - *filterStrength*: This controls the degree by which the previous accumulated frames are blended with the current one. This ranges from 0.0 to 1.0, with a default of 0.5.
+
+- **GPUImageHighPassFilter**: This applies a high pass filter to incoming video frames. This is the inverse of the low pass filter, showing the difference between the current frame and the weighted rolling average of previous ones. This is most useful for motion detection.
+  - *filterStrength*: This controls the degree by which the previous accumulated frames are blended and then subtracted from the current one. This ranges from 0.0 to 1.0, with a default of 0.5.
+
+- **GPUImageMotionDetector**: This is a motion detector based on a high-pass filter. You set the motionDetectionBlock and on every incoming frame it will give you the centroid of any detected movement in the scene (in normalized X,Y coordinates) as well as an intensity of motion for the scene.
+  - *lowPassFilterStrength*: This controls the strength of the low pass filter used behind the scenes to establish the baseline that incoming frames are compared with. This ranges from 0.0 to 1.0, with a default of 0.5.
+
+
 ### Blending modes ###
 
 - **GPUImageChromaKeyBlendFilter**: Selectively replaces a color in the first image with the second image
@@ -201,6 +254,10 @@ Documentation is generated from header comments using appledoc. To build the doc
   - *mix*: The degree with which the second image overrides the first (0.0 - 1.0, with 0.5 as the default)
 
 - **GPUImageMultiplyBlendFilter**: Applies a multiply blend of two images
+
+- **GPUImageAddBlendFilter**: Applies an additive blend of two images
+
+- **GPUImageDivideBlendFilter**: Applies a division blend of two images
 
 - **GPUImageOverlayBlendFilter**: Applies an overlay blend of two images
 
@@ -233,6 +290,13 @@ Documentation is generated from header comments using appledoc. To build the doc
 - **GPUImagePolarPixellateFilter**: Applies a pixellation effect on an image or video, based on polar coordinates instead of Cartesian ones
   - *center*: The center about which to apply the pixellation, defaulting to (0.5, 0.5)
   - *pixelSize*: The fractional pixel size, split into width and height components. The default is (0.05, 0.05)
+
+- **GPUImagePolkaDotFilter**: Breaks an image up into colored dots within a regular grid
+  - *fractionalWidthOfAPixel*: How large the dots are, as a fraction of the width and height of the image (0.0 - 1.0, default 0.05)
+  - *dotScaling*: What fraction of each grid space is taken up by a dot, from 0.0 to 1.0 with a default of 0.9.
+
+- **GPUImageHalftoneFilter**: Applies a halftone effect to an image, like news print
+  - *fractionalWidthOfAPixel*: How large the halftone dots are, as a fraction of the width and height of the image (0.0 - 1.0, default 0.05)
 
 - **GPUImageCrosshatchFilter**: This converts an image into a black-and-white crosshatch pattern
   - *crossHatchSpacing*: The fractional width of the image to use as the spacing for the crosshatch. The default is 0.03.
@@ -327,7 +391,7 @@ To filter live video from an iOS device's camera, you can use code like the foll
 
 	// Add the view somewhere so it's visible
 
-	[videoCamera addTarget:thresholdFilter];
+	[videoCamera addTarget:customFilter];
 	[customFilter addTarget:filteredVideoView];
 
 	[videoCamera startCameraCapture];

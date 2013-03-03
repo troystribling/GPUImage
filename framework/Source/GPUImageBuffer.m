@@ -1,5 +1,13 @@
 #import "GPUImageBuffer.h"
 
+@interface GPUImageBuffer()
+
+//Texture management
+- (GLuint)generateTexture;
+- (void)removeTexture:(GLuint)textureToRemove;
+
+@end
+
 @implementation GPUImageBuffer
 
 @synthesize bufferSize = _bufferSize;
@@ -15,6 +23,7 @@
     }
     
     bufferedTextures = [[NSMutableArray alloc] init];
+    [self initializeOutputTextureIfNeeded];
     [bufferedTextures addObject:[NSNumber numberWithInt:outputTexture]];
     _bufferSize = 1;
     
@@ -32,14 +41,18 @@
 #pragma mark -
 #pragma mark GPUImageInput
 
-- (void)newFrameReadyAtTime:(CMTime)frameTime;
+- (void)newFrameReadyAtTime:(CMTime)frameTime atIndex:(NSInteger)textureIndex;
 {
+    outputTextureRetainCount = [targets count];
+
     static const GLfloat imageVertices[] = {
         -1.0f, -1.0f,
         1.0f, -1.0f,
         -1.0f,  1.0f,
         1.0f,  1.0f,
     };
+    
+    [self notifyTargetsAboutNewOutputTexture];
 
     // Let the downstream video elements see the previous frame from the buffer before rendering a new one into place
     [self informTargetsAboutNewFrameAtTime:frameTime];
@@ -68,14 +81,12 @@
         return;
     }
     
-    [GPUImageOpenGLESContext useImageProcessingContext];
+    [GPUImageOpenGLESContext setActiveShaderProgram:filterProgram];
     [self setFilterFBO];
     
     glBindTexture(GL_TEXTURE_2D, [[bufferedTextures lastObject] intValue]);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, [[bufferedTextures lastObject] intValue], 0);
-    
-    [filterProgram use];
-    
+        
     glClearColor(backgroundColorRed, backgroundColorGreen, backgroundColorBlue, backgroundColorAlpha);
     glClear(GL_COLOR_BUFFER_BIT);
     
@@ -98,11 +109,10 @@
 #pragma mark -
 #pragma mark Managing targets
 
-- (void)setInputTextureForTarget:(id<GPUImageInput>)target atIndex:(NSInteger)inputTextureIndex;
+- (GLuint)textureForOutput;
 {
-    [target setInputTexture:[[bufferedTextures objectAtIndex:0] intValue] atIndex:inputTextureIndex];
+    return [[bufferedTextures objectAtIndex:0] intValue];
 }
-
 
 #pragma mark -
 #pragma mark Texture management
@@ -159,6 +169,8 @@
             [self removeTexture:[lastTextureName intValue]];
         }
     }
+
+  _bufferSize = newValue;
 }
 
 @end

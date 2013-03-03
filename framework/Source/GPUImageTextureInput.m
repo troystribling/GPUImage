@@ -12,7 +12,11 @@
         return nil;
     }
 
-    [self deleteOutputTexture];
+    runSynchronouslyOnVideoProcessingQueue(^{
+        [GPUImageOpenGLESContext useImageProcessingContext];
+
+        [self deleteOutputTexture];
+    });
     
     outputTexture = newInputTexture;
     textureSize = newTextureSize;
@@ -25,14 +29,16 @@
 
 - (void)processTextureWithFrameTime:(CMTime)frameTime;
 {
-    for (id<GPUImageInput> currentTarget in targets)
-    {
-        NSInteger indexOfObject = [targets indexOfObject:currentTarget];
-        NSInteger targetTextureIndex = [[targetTextureIndices objectAtIndex:indexOfObject] integerValue];
-
-        [currentTarget setInputSize:textureSize atIndex:targetTextureIndex];
-        [currentTarget newFrameReadyAtTime:frameTime];
-    }
+    runAsynchronouslyOnVideoProcessingQueue(^{
+        for (id<GPUImageInput> currentTarget in targets)
+        {
+            NSInteger indexOfObject = [targets indexOfObject:currentTarget];
+            NSInteger targetTextureIndex = [[targetTextureIndices objectAtIndex:indexOfObject] integerValue];
+            
+            [currentTarget setInputSize:textureSize atIndex:targetTextureIndex];
+            [currentTarget newFrameReadyAtTime:frameTime atIndex:targetTextureIndex];
+        }
+    });
 }
 
 @end
