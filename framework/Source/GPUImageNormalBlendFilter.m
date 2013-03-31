@@ -23,14 +23,20 @@ NSString *const kGPUImageNormalBlendFragmentShaderString = SHADER_STRING
      lowp vec4 textureColor = texture2D(inputImageTexture, textureCoordinate);
      lowp vec4 textureColor2 = texture2D(inputImageTexture2, textureCoordinate2);
      
-      if (textureColor2.a < 1.0) {
-          gl_FragColor = vec4(mix(textureColor.rgb, textureColor2.rgb, textureColor2.a), textureColor.a);
-      } else {
-          gl_FragColor = textureColor2;
-      }
-  }
-);
+//     outputColor.r = c1.r + c2.r * c2.a * (1.0 - c1.a);
+//     outputColor.g = c1.g + c2.g * c2.a * (1.0 - c1.a);
+//     outputColor.b = c1.b + c2.b * c2.a * (1.0 - c1.a);
+//     outputColor.a = c1.a + c2.a * (1.0 - c1.a);
+     
+     lowp float a = c1.a + c2.a * (1.0 - c1.a);
+     outputColor.r = (c1.r * c1.a + c2.r * c2.a * (1.0 - c1.a))/a;
+     outputColor.g = (c1.g * c1.a + c2.g * c2.a * (1.0 - c1.a))/a;
+     outputColor.b = (c1.b * c1.a + c2.b * c2.a * (1.0 - c1.a))/a;
+     outputColor.a = a;
 
+     gl_FragColor = outputColor;
+ }
+ );
 
 @implementation GPUImageNormalBlendFilter
 
